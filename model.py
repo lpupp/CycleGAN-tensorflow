@@ -127,11 +127,13 @@ class cyclegan(object):
 
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
-        self.writer = tf.summary.FileWriter("./logs", self.sess.graph)
+        self.writer = tf.summary.FileWriter(args.logs_dir, self.sess.graph)
 
         counter = 1
         start_time = time.time()
 
+        load_size = [args.load_size_h, args.load_size_w]
+        
         if args.continue_train:
             if self.load(args.checkpoint_dir):
                 print(" [*] Load SUCCESS")
@@ -139,17 +141,18 @@ class cyclegan(object):
                 print(" [!] Load failed...")
 
         for epoch in range(args.epoch):
-            dataA = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/trainA'))
-            dataB = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/trainB'))
+            dataA = glob('{}/trainA/*.*'.format(self.dataset_dir))
+            dataB = glob('{}/trainB/*.*'.format(self.dataset_dir))
             np.random.shuffle(dataA)
             np.random.shuffle(dataB)
             batch_idxs = min(min(len(dataA), len(dataB)), args.train_size) // self.batch_size
             lr = args.lr if epoch < args.epoch_step else args.lr*(args.epoch-epoch)/(args.epoch-args.epoch_step)
 
             for idx in range(0, batch_idxs):
+                print('mini batch {} in epoch {}'.format(idx, epoch))
                 batch_files = list(zip(dataA[idx * self.batch_size:(idx + 1) * self.batch_size],
                                        dataB[idx * self.batch_size:(idx + 1) * self.batch_size]))
-                batch_images = [load_train_data(batch_file, args.load_size, args.fine_size) for batch_file in batch_files]
+                batch_images = [load_train_data(batch_file, load_size, args.fine_size) for batch_file in batch_files]
                 batch_images = np.array(batch_images).astype(np.float32)
 
                 # Update G network and record fake outputs
@@ -205,10 +208,12 @@ class cyclegan(object):
             return False
 
     def sample_model(self, sample_dir, epoch, idx):
-        dataA = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testA'))
-        dataB = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testB'))
+        dataA = glob('{}/trainA/*.*'.format(self.dataset_dir))
+        dataB = glob('{}/trainB/*.*'.format(self.dataset_dir))
         np.random.shuffle(dataA)
         np.random.shuffle(dataB)
+        
+                
         batch_files = list(zip(dataA[:self.batch_size], dataB[:self.batch_size]))
         sample_images = [load_train_data(batch_file, is_testing=True) for batch_file in batch_files]
         sample_images = np.array(sample_images).astype(np.float32)
@@ -227,9 +232,9 @@ class cyclegan(object):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         if args.which_direction == 'AtoB':
-            sample_files = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testA'))
+            sample_files = glob('{}/testA/*.*'.format(self.dataset_dir))
         elif args.which_direction == 'BtoA':
-            sample_files = glob('./datasets/{}/*.*'.format(self.dataset_dir + '/testB'))
+            sample_files = glob('{}/testB/*.*'.format(self.dataset_dir))
         else:
             raise Exception('--which_direction must be AtoB or BtoA')
 
