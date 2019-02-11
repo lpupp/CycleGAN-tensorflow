@@ -5,3 +5,4 @@ checkpoint/*
 datasets/*
 test/*
 sample/*
+.DS_Store
